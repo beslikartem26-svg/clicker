@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Атомный Кликер</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-cyan: #00f5ff;
+            --primary-purple: #bd00ff;
+            --primary-blue: #0066ff;
+            --dark-bg: #0a0a1a;
+            --card-bg: rgba(20, 20, 40, 0.8);
+            --glow-cyan: 0 0 20px rgba(0, 245, 255, 0.5);
+            --glow-purple: 0 0 20px rgba(189, 0, 255, 0.5);
+        }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3a 50%, #0a0a2a 100%);
+            min-height: 100vh;
+            color: #fff;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(ellipse at 20% 80%, rgba(0, 245, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(189, 0, 255, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 30px 0;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        .title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--primary-cyan), var(--primary-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: var(--glow-cyan);
+            letter-spacing: 3px;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: rgba(255, 255, 255, 0.7);
+            letter-spacing: 2px;
+        }
+
+        /* Main Game Area */
+        .game-area {
+            display: grid;
+            grid-template-columns: 1fr 400px 1fr;
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        @media (max-width: 1200px) {
+            .game-area {
+                grid-template-columns: 1fr;
+                max-width: 600px;
+                margin: 30px auto;
+            }
+        }
+
+        /* Stats Panel */
+        .stats-panel {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            animation: slideInLeft 0.8s ease-out;
+        }
+
+        .stat-item {
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .stat-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.6);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary-cyan);
+            text-shadow: var(--glow-cyan);
+        }
+
+        .stat-value.purple {
+            color: var(--primary-purple);
+            text-shadow: var(--glow-purple);
+        }
+
+        /* Click Area */
+        .click-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .atom-container {
+            position: relative;
+            width: 280px;
+            height: 280px;
+            cursor: pointer;
+            transition: transform 0.1s ease;
+        }
+
+        .atom-container:active {
+            transform: scale(0.95);
+        }
+
+        .atom-container:hover {
+            transform: scale(1.02);
+        }
+
+        .atom-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 0 30px rgba(0, 245, 255, 0.5));
+            animation: pulse 2s ease-in-out infinite, rotate 20s linear infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { filter: drop-shadow(0 0 30px rgba(0, 245, 255, 0.5)); }
+            50% { filter: drop-shadow(0 0 50px rgba(0, 245, 255, 0.8)); }
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .click-effect {
+            position: absolute;
+            pointer-events: none;
+            animation: clickPop 0.5s ease-out forwards;
+        }
+
+        @keyframes clickPop {
+            0% {
+                transform: scale(0);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(2);
+                opacity: 0;
+            }
+        }
+
+        .click-button {
+            margin-top: 30px;
+            padding: 20px 60px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #fff;
+            background: linear-gradient(135deg, var(--primary-cyan), var(--primary-blue));
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            box-shadow: 0 10px 40px rgba(0, 245, 255, 0.4);
+            transition: all 0.3s ease;
+            animation: buttonGlow 2s ease-in-out infinite;
+        }
+
+        .click-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 50px rgba(0, 245, 255, 0.6);
+        }
+
+        .click-button:active {
+            transform: translateY(0);
+        }
+
+        @keyframes buttonGlow {
+            0%, 100% { box-shadow: 0 10px 40px rgba(0, 245, 255, 0.4); }
+            50% { box-shadow: 0 10px 60px rgba(0, 245, 255, 0.7); }
+        }
+
+        /* Upgrades Panel */
+        .upgrades-panel {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            animation: slideInRight 0.8s ease-out;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .panel-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.4rem;
+            color: var(--primary-purple);
+            margin-bottom: 20px;
+            text-align: center;
+            text-shadow: var(--glow-purple);
+        }
+
+        .upgrade-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .upgrade-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--primary-cyan);
+            transform: translateX(-5px);
+        }
+
+        .upgrade-item.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .upgrade-item.disabled:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .upgrade-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .upgrade-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: #fff;
+        }
+
+        .upgrade-level {
+            background: linear-gradient(135deg, var(--primary-cyan), var(--primary-purple));
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        .upgrade-description {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 10px;
+        }
+
+        .upgrade-cost {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1rem;
+            color: var(--primary-cyan);
+            font-weight: 700;
+        }
+
+        .upgrade-item.disabled .upgrade-cost {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        /* Particles */
+        .particle {
+            position: fixed;
+            pointer-events: none;
+            border-radius: 50%;
+            animation: particleFloat 1s ease-out forwards;
+        }
+
+        @keyframes particleFloat {
+            0% {
+                transform: translate(0, 0) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(var(--tx), var(--ty)) scale(0);
+                opacity: 0;
+            }
+        }
+
+        /* Floating Numbers */
+        .floating-number {
+            position: fixed;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-cyan);
+            pointer-events: none;
+            animation: floatUp 1s ease-out forwards;
+            text-shadow: var(--glow-cyan);
+        }
+
+        @keyframes floatUp {
+            0% {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100px) scale(1.5);
+                opacity: 0;
+            }
+        }
+
+        /* Achievements */
+        .achievements-section {
+            margin-top: 30px;
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            animation: fadeInUp 1s ease-out;
+        }
+
+        .achievements-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .achievement {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .achievement.unlocked {
+            border-color: var(--primary-cyan);
+            background: rgba(0, 245, 255, 0.1);
+            animation: achievementUnlock 0.5s ease-out;
+        }
+
+        @keyframes achievementUnlock {
+            0% { transform: scale(0.8); opacity: 0; }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .achievement-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .achievement-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+
+        .achievement-desc {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Animations */
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary-cyan);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-purple);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .stats-panel,
+            .upgrades-panel {
+                max-width: 100%;
+            }
+
+            .atom-container {
+                width: 200px;
+                height: 200px;
+            }
+
+            .click-button {
+                padding: 15px 40px;
+                font-size: 1.1rem;
+            }
+        }
+
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: linear-gradient(135deg, var(--primary-cyan), var(--primary-purple));
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-weight: 600;
+            z-index: 1000;
+            animation: notificationSlide 0.5s ease-out forwards;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        @keyframes notificationSlide {
+            to {
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1 class="title">⚛️ АТОМНЫЙ КЛИКЕР</h1>
+            <p class="subtitle">Создай свою ядерную империю</p>
+        </header>
+
+        <div class="game-area">
+            <!-- Left Stats Panel -->
+            <div class="stats-panel">
+                <div class="stat-item">
+                    <div class="stat-label">Энергия</div>
+                    <div class="stat-value" id="energy">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Энергия в секунду</div>
+                    <div class="stat-value purple" id="eps">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">За клик</div>
+                    <div class="stat-value" id="perClick">1</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Всего кликов</div>
+                    <div class="stat-value purple" id="totalClicks">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Время игры</div>
+                    <div class="stat-value" id="playTime">0:00</div>
+                </div>
+            </div>
+
+            <!-- Center Click Area -->
+            <div class="click-area">
+                <div class="atom-container" id="atom">
+                    <img src="https://image.qwenlm.ai/public_source/fbbaf166-6410-44ca-a7a3-000240a0d4bb/114133305-3233-4e31-a8ef-f372d0e1d5ea.png" alt="Атом" class="atom-image">
+                </div>
+                <button class="click-button" id="clickBtn">⚡ КЛИК ⚡</button>
+            </div>
+
+            <!-- Right Upgrades Panel -->
+            <div class="upgrades-panel">
+                <h2 class="panel-title">🔬 УЛУЧШЕНИЯ</h2>
+                <div id="upgradesList"></div>
+            </div>
+        </div>
+
+        <!-- Achievements -->
+        <div class="achievements-section">
+            <h2 class="panel-title">🏆 ДОСТИЖЕНИЯ</h2>
+            <div class="achievements-grid" id="achievementsGrid"></div>
+        </div>
+    </div>
+
+    <script>
+        // Game State
+        const gameState = {
+            energy: 0,
+            totalEnergy: 0,
+            clicks: 0,
+            startTime: Date.now(),
+            upgrades: {
+                clickPower: { level: 1, cost: 10, baseCost: 10, multiplier: 1.5, name: 'Усиление клика', desc: '+1 к энергии за клик' },
+                autoClicker: { level: 0, cost: 50, baseCost: 50, multiplier: 1.4, name: 'Авто-кликер', desc: '+1 энергия/сек' },
+                reactor: { level: 0, cost: 200, baseCost: 200, multiplier: 1.5, name: 'Реактор', desc: '+5 энергия/сек' },
+                particleAcc: { level: 0, cost: 1000, baseCost: 1000, multiplier: 1.6, name: 'Ускоритель', desc: '+20 энергия/сек' },
+                fusionCore: { level: 0, cost: 5000, baseCost: 5000, multiplier: 1.7, name: 'Термоядро', desc: '+100 энергия/сек' },
+                quantumLab: { level: 0, cost: 20000, baseCost: 20000, multiplier: 1.8, name: 'Квантовая лаб', desc: '+500 энергия/сек' }
+            },
+            achievements: [
+                { id: 'first100', name: 'Первые шаги', desc: 'Накопи 100 энергии', icon: '🌟', unlocked: false, condition: () => gameState.totalEnergy >= 100 },
+                { id: 'first1000', name: 'Новичок', desc: 'Накопи 1,000 энергии', icon: '⭐', unlocked: false, condition: () => gameState.totalEnergy >= 1000 },
+                { id: 'first10000', name: 'Эксперт', desc: 'Накопи 10,000 энергии', icon: '🌟', unlocked: false, condition: () => gameState.totalEnergy >= 10000 },
+                { id: 'first100000', name: 'Мастер', desc: 'Накопи 100,000 энергии', icon: '💫', unlocked: false, condition: () => gameState.totalEnergy >= 100000 },
+                { id: 'clicks100', name: 'Кликер', desc: 'Сделай 100 кликов', icon: '👆', unlocked: false, condition: () => gameState.clicks >= 100 },
+                { id: 'clicks1000', name: 'Фанатик', desc: 'Сделай 1,000 кликов', icon: '🖱️', unlocked: false, condition: () => gameState.clicks >= 1000 },
+                { id: 'upgrades10', name: 'Инженер', desc: 'Купи 10 улучшений', icon: '🔧', unlocked: false, condition: () => getTotalUpgrades() >= 10 },
+                { id: 'upgrades50', name: 'Учёный', desc: 'Купи 50 улучшений', icon: '👨🔬', unlocked: false, condition: () => getTotalUpgrades() >= 50 }
+            ]
+        };
+
+        // Helper Functions
+        function formatNumber(num) {
+            if (num >= 1000000) return (num / 1000000).toFixed(2) + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(2) + 'K';
+            return Math.floor(num).toString();
+        }
+
+        function getClickPower() {
+            return gameState.upgrades.clickPower.level;
+        }
+
+        function getEPS() {
+            let eps = 0;
+            eps += gameState.upgrades.autoClicker.level * 1;
+            eps += gameState.upgrades.reactor.level * 5;
+            eps += gameState.upgrades.particleAcc.level * 20;
+            eps += gameState.upgrades.fusionCore.level * 100;
+            eps += gameState.upgrades.quantumLab.level * 500;
+            return eps;
+        }
+
+        function getTotalUpgrades() {
+            let total = 0;
+            for (let key in gameState.upgrades) {
+                total += gameState.upgrades[key].level;
+            }
+            return total;
+        }
+
+        // DOM Elements
+        const energyEl = document.getElementById('energy');
+        const epsEl = document.getElementById('eps');
+        const perClickEl = document.getElementById('perClick');
+        const totalClicksEl = document.getElementById('totalClicks');
+        const playTimeEl = document.getElementById('playTime');
+        const atomEl = document.getElementById('atom');
+        const clickBtnEl = document.getElementById('clickBtn');
+        const upgradesListEl = document.getElementById('upgradesList');
+        const achievementsGridEl = document.getElementById('achievementsGrid');
+
+        // Update UI
+        function updateUI() {
+            energyEl.textContent = formatNumber(gameState.energy);
+            epsEl.textContent = formatNumber(getEPS());
+            perClickEl.textContent = formatNumber(getClickPower());
+            totalClicksEl.textContent = formatNumber(gameState.clicks);
+            
+            const elapsed = Math.floor((Date.now() - gameState.startTime) / 1000);
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            playTimeEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+            updateUpgradesUI();
+            checkAchievements();
+        }
+
+        // Render Upgrades
+        function updateUpgradesUI() {
+            upgradesListEl.innerHTML = '';
+            
+            for (let key in gameState.upgrades) {
+                const upgrade = gameState.upgrades[key];
+                const canAfford = gameState.energy >= upgrade.cost;
+                
+                const upgradeEl = document.createElement('div');
+                upgradeEl.className = `upgrade-item ${canAfford ? '' : 'disabled'}`;
+                upgradeEl.innerHTML = `
+                    <div class="upgrade-header">
+                        <span class="upgrade-name">${upgrade.name}</span>
+                        <span class="upgrade-level">Ур. ${upgrade.level}</span>
+                    </div>
+                    <div class="upgrade-description">${upgrade.desc}</div>
+                    <div class="upgrade-cost">💎 ${formatNumber(upgrade.cost)}</div>
+                `;
+                
+                if (canAfford) {
+                    upgradeEl.addEventListener('click', () => buyUpgrade(key));
+                }
+                
+                upgradesListEl.appendChild(upgradeEl);
+            }
+        }
+
+        // Render Achievements
+        function renderAchievements() {
+            achievementsGridEl.innerHTML = '';
+            
+            gameState.achievements.forEach(achievement => {
+                const achievementEl = document.createElement('div');
+                achievementEl.className = `achievement ${achievement.unlocked ? 'unlocked' : ''}`;
+                achievementEl.innerHTML = `
+                    <div class="achievement-icon">${achievement.icon}</div>
+                    <div class="achievement-name">${achievement.name}</div>
+                    <div class="achievement-desc">${achievement.desc}</div>
+                `;
+                achievementsGridEl.appendChild(achievementEl);
+            });
+        }
+
+        // Check Achievements
+        function checkAchievements() {
+            gameState.achievements.forEach(achievement => {
+                if (!achievement.unlocked && achievement.condition()) {
+                    achievement.unlocked = true;
+                    showNotification(`🏆 ${achievement.name} разблокировано!`);
+                    renderAchievements();
+                }
+            });
+        }
+
+        // Buy Upgrade
+        function buyUpgrade(key) {
+            const upgrade = gameState.upgrades[key];
+            if (gameState.energy >= upgrade.cost) {
+                gameState.energy -= upgrade.cost;
+                upgrade.level++;
+                upgrade.cost = Math.floor(upgrade.baseCost * Math.pow(upgrade.multiplier, upgrade.level));
+                updateUI();
+                createParticles(clickBtnEl.getBoundingClientRect());
+            }
+        }
+
+        // Click Handler
+        function handleClick(e) {
+            const power = getClickPower();
+            gameState.energy += power;
+            gameState.totalEnergy += power;
+            gameState.clicks++;
+            
+            // Visual effects
+            const rect = atomEl.getBoundingClientRect();
+            const x = e.clientX || (rect.left + rect.width / 2);
+            const y = e.clientY || (rect.top + rect.height / 2);
+            
+            createFloatingNumber(x, y, `+${power}`);
+            createParticles({ left: x, top: y, width: 0, height: 0 });
+            
+            updateUI();
+        }
+
+        // Create Particles
+        function createParticles(rect) {
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            
+            for (let i = 0; i < 12; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                
+                const size = Math.random() * 10 + 5;
+                const angle = (Math.PI * 2 * i) / 12;
+                const distance = Math.random() * 100 + 50;
+                const tx = Math.cos(angle) * distance;
+                const ty = Math.sin(angle) * distance;
+                
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                particle.style.left = `${centerX}px`;
+                particle.style.top = `${centerY}px`;
+                particle.style.background = i % 2 === 0 ? 'var(--primary-cyan)' : 'var(--primary-purple)';
+                particle.style.setProperty('--tx', `${tx}px`);
+                particle.style.setProperty('--ty', `${ty}px`);
+                
+                document.body.appendChild(particle);
+                
+                setTimeout(() => particle.remove(), 1000);
+            }
+        }
+
+        // Create Floating Number
+        function createFloatingNumber(x, y, text) {
+            const number = document.createElement('div');
+            number.className = 'floating-number';
+            number.textContent = text;
+            number.style.left = `${x}px`;
+            number.style.top = `${y}px`;
+            
+            document.body.appendChild(number);
+            
+            setTimeout(() => number.remove(), 1000);
+        }
+
+        // Show Notification
+        function showNotification(text) {
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.textContent = text;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'notificationSlide 0.5s ease-out reverse forwards';
+                setTimeout(() => notification.remove(), 500);
+            }, 2000);
+        }
+
+        // Auto Energy Generation
+        setInterval(() => {
+            const eps = getEPS();
+            if (eps > 0) {
+                gameState.energy += eps / 10;
+                gameState.totalEnergy += eps / 10;
+                updateUI();
+            }
+        }, 100);
+
+        // Event Listeners
+        atomEl.addEventListener('click', handleClick);
+        clickBtnEl.addEventListener('click', (e) => {
+            handleClick(e);
+            atomEl.style.transform = 'scale(0.95)';
+            setTimeout(() => atomEl.style.transform = 'scale(1)', 100);
+        });
+
+        // Initialize
+        renderAchievements();
+        updateUI();
+
+        // Save/Load (localStorage)
+        function saveGame() {
+            localStorage.setItem('atomClickerSave', JSON.stringify(gameState));
+        }
+
+        function loadGame() {
+            const save = localStorage.getItem('atomClickerSave');
+            if (save) {
+                const saved = JSON.parse(save);
+                Object.assign(gameState, saved);
+                renderAchievements();
+                updateUI();
+            }
+        }
+
+        // Auto-save every 30 seconds
+        setInterval(saveGame, 30000);
+        
+        // Load on start
+        loadGame();
+    </script>
+</body>
+</html>
+
